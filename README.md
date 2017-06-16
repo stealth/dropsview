@@ -11,8 +11,8 @@ does not set any colors by itself. You can set your own colors or background
 images/fading via your terminal emulators' arguments. I just chose the maximum
 retro feeling.
 
-0. Intro
---------
+Intro
+-----
 
 If you are not familar with [opmsg](https://github.com/stealth/opmsg) or
 [drops]((https://github.com/stealth/drops), please read their documents first,
@@ -31,16 +31,16 @@ all this. It is not as difficult as it may sound, you just have to be
 aware of these things.
 
 
-1. Build
---------
+Build
+-----
 
 Should be easy: `make`.
 
 You should also install the `qrencode` program, since _dropsview_ can show
 the persona key as utf8 QR code, if your `$EDITOR` works with utf8.
 
-2. Usage
---------
+Usage
+-----
 
 Just start `./dropsview` and it will list you the personas and messages that
 you have in your in-queue. Navigate as usual.
