@@ -234,6 +234,8 @@ int system(const vector<const char *> &v, string &out, string &err)
 
 void mark_as_read(const string &id)
 {
+	config::message_status[id] = status::read;
+
 	string path = config::home + "/.drops/view/messages.status";
 
 	FILE *f = fopen(path.c_str(), "a");
