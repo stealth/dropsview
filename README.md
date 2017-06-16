@@ -15,7 +15,7 @@ Intro
 -----
 
 If you are not familar with [opmsg](https://github.com/stealth/opmsg) or
-[drops]((https://github.com/stealth/drops), please read their documents first,
+[drops](https://github.com/stealth/drops), please read their documents first,
 as it makes only sense to use dropsview if you have a working _opmsg_ and
 _drops_ setup. After all, _dropsview_ is a frontend for these, if you dont want
 to use the commandline interface.
