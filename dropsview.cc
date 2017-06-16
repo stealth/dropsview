@@ -23,6 +23,8 @@
 #include <locale.h>
 #include <cstring>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "gui.h"
 #include "config.h"
 #include "misc.h"
@@ -60,6 +62,8 @@ int main(int argc, char *argv[])
 
 	init_config();
 	load_message_status();
+
+	umask(077);
 
 	setlocale(LC_ALL, "");
 	gui = new (nothrow) GUI;
