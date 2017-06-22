@@ -30,6 +30,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <curses.h>
 #include "misc.h"
 #include "config.h"
 
@@ -274,6 +275,15 @@ void load_message_status()
 
 	fclose(f);
 	return;
+}
+
+
+int box(WINDOW *w, chtype verch, chtype horch)
+{
+	if (config::drawbox)
+		return ::box(w, verch, horch);
+
+	return 0;
 }
 
 

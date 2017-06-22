@@ -36,7 +36,7 @@ using namespace dropsview;
 
 void usage(const char *p)
 {
-	cerr<<"\nUsage: "<<p<<" -T [tag]\n\n";
+	cerr<<"\nUsage: "<<p<<" -T [tag] [-b]\n\n";
 	exit(-1);
 }
 
@@ -45,10 +45,13 @@ int main(int argc, char *argv[])
 {
 	int c;
 
-	while ((c = getopt(argc, argv, "T:")) != -1) {
+	while ((c = getopt(argc, argv, "T:b")) != -1) {
 		switch (c) {
 		case 'T':
 			config::tag = optarg;
+			break;
+		case 'b':
+			config::drawbox = 0;
 			break;
 		default:
 			usage(argv[0]);
@@ -70,11 +73,13 @@ int main(int argc, char *argv[])
 
 	if (gui->init() < 0) {
 		cerr<<"Error: "<<gui->why()<<endl;
+		delete gui;
+		return -1;
 	} else
 		gui->perform_menus();
 
+	cerr<<"Error: "<<gui->why()<<endl;
 	delete gui;
-
 	return -1;
 }
 

@@ -35,6 +35,8 @@ extern std::string editor, tag;
 
 extern std::map<std::string, uint64_t> message_status;
 
+extern bool drawbox;
+
 }
 
 

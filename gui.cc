@@ -137,11 +137,13 @@ int GUI::init()
 	noraw();
 	cbreak();
 	noecho();
+	curs_set(0);
 
 	d_status = newwin(3, COLS, LINES - 3, 0);
-	d_content = newwin(LINES - 3, COLS - 1, 1, 40);
+	d_contentbox = newwin(LINES - 4, COLS - 40, 1, 40);
+	d_content = derwin(d_contentbox, LINES - 6, COLS - 42, 1, 1);
 
-	if (!d_status || !d_content)
+	if (!d_status || !d_content || !d_contentbox)
 		return build_error("Failed to create ncurses menus.", -1);
 
 	d_mBanner = build_vector_menu({"personas", config::tag, "drops"}, call_menus, eBanner);
@@ -152,6 +154,9 @@ int GUI::init()
 	d_mDrops = build_vector_menu({"exit"}, call_drops, eDrops);
 	if (!d_mBanner || !d_mPersonas || !d_mMessages || !d_mDrops)
 		return build_error("Failed to create ncurses menus.", -1);
+
+	dropsview::box(d_contentbox, 0, 0);
+	wrefresh(d_contentbox);
 
 	return 0;
 }
@@ -184,6 +189,7 @@ int GUI::menu_offset(MenuNo number)
 void dropsview_item_init(MENU *menu)
 {
 	WINDOW *content = gui->window("content");
+	WINDOW *contentbox = gui->window("contentbox");
 	WINDOW *status = gui->window("status");
 
 	ITEM *item = current_item(menu);
@@ -192,15 +198,21 @@ void dropsview_item_init(MENU *menu)
 	werase(content);
 
 	if (md->menu == ePersonas) {
-		mvwprintw(status, 2, 0, "%s %s", md->get_content("id").c_str(), md->get_content("name").c_str());
-		mvwprintw(content, 0, 0, "%s", md->get_content("pub_pem").c_str());
-	} else if (md->menu == eMessages) {
-		mvwprintw(status, 2, 0, "%s", md->get_content("id").c_str());
-		mvwprintw(content, 0, 0, "%s", md->get_content("message").c_str());
-	}
+		string s = md->get_content("pub_pem") + "\n";
+		s += "keytype: " + md->get_content("keytype") + "\n";
+		s += "has private part: " + md->get_content("private") + "\n";
 
+		mvwprintw(status, 1, 1, "%s %s", md->get_content("id").c_str(), md->get_content("name").c_str());
+		mvwprintw(content, 0, 0, "%s", s.c_str());
+	} else if (md->menu == eMessages) {
+		mvwprintw(status, 1, 1, "%s", md->get_content("id").c_str());
+		mvwprintw(content, 0, 0, "%s", md->get_content("message").c_str());
+	} else if (md->menu == eBanner)
+		mvwprintw(status, 1, 1, "");
+
+	touchwin(contentbox);
 	wclrtoeol(status);
-	wclrtoeol(content);
+	dropsview::box(status, 0, 0);
 	wrefresh(status);
 	wrefresh(content);
 }
@@ -224,8 +236,8 @@ MENU *GUI::menu_create(ITEM **items, int count, int ncols, MenuNo number)
 	int maxcol = (ncols + x) < COLS ? ncols : (COLS - x - 1);
 	int maxrow = (count + 1) / ncols;
 
-	if ((maxrow + y) >= (LINES - 4))
-		maxrow = LINES - 4 - y;
+	if ((maxrow + y) >= (LINES - 5))
+		maxrow = LINES - 5 - y;
 
 	result = new_menu(items);
 
@@ -235,16 +247,21 @@ MENU *GUI::menu_create(ITEM **items, int count, int ncols, MenuNo number)
 	if (mcols + (2 * margin + x) >= COLS)
 		mcols = COLS - (2 * margin + x);
 
-	menuwin = newwin(mrows + (2 * margin), mcols + (2 * margin), y, x);
+//	menuwin = newwin(mrows + (2 * margin), mcols + (2 * margin), y, x);
+	if (number != eBanner)
+		menuwin = newwin(LINES - 4, 40, 1, 0);
+	else
+		menuwin = newwin(mrows + (2 * margin), mcols + (2 * margin), 0, 0);
+
 	set_menu_win(result, menuwin);
 	keypad(menuwin, TRUE);
 	if (margin)
-		box(menuwin, 0, 0);
+		dropsview::box(menuwin, 0, 0);
 
 	set_menu_sub(result, derwin(menuwin, mrows, mcols, margin, margin));
 	post_menu(result);
 
-	//set_menu_init(result, my_menu_init);
+	//set_menu_init(result, dropsview_item_init);
 	//set_menu_term(result, my_menu_term);
 	set_item_init(result, dropsview_item_init);
 	//set_item_term(result, my_item_term);
@@ -306,7 +323,7 @@ MENU *GUI::build_persona_menu(const map<string, string> &m, void (*func)(int), M
 	for (auto it = m.begin(); it != m.end(); ++it) {
 		string s = it->first.substr(0, 16);
 		s += " ";
-		s += it->second.substr(0, 16);
+		s += it->second.substr(0, 20);
 
 		// must be a strdup()
 		MenuData *md = new (nothrow) MenuData(strdup(s.c_str()), func, i, mn);
@@ -318,12 +335,18 @@ MENU *GUI::build_persona_menu(const map<string, string> &m, void (*func)(int), M
 		++ip;
 		++i;
 
-		string path = dir + it->first + "/rsa.pub.pem";
+		string path = dir + it->first + "/rsa.pub.pem", privpath = dir + it->first;
 		fd = open(path.c_str(), O_RDONLY);
 		if (fd < 0) {
 			path = dir + it->first + "/ec.pub.pem";
 			if ((fd = open(path.c_str(), O_RDONLY)) < 0)
 				continue;
+
+			md->set_content("keytype", "EC");
+			privpath += "/ec.priv.pem";
+		} else {
+			md->set_content("keytype", "RSA");
+			privpath += "/rsa.priv.pem";
 		}
 
 		memset(&st, 0, sizeof(st));
@@ -340,6 +363,11 @@ MENU *GUI::build_persona_menu(const map<string, string> &m, void (*func)(int), M
 
 		close(fd);
 		md->set_content("pub_pem", string(pub_pem, st.st_size));
+
+		if (stat(privpath.c_str(), &st) == 0)
+			md->set_content("private", "true");
+		else
+			md->set_content("private", "false");
 	}
 
 	*ip = nullptr;
@@ -361,12 +389,12 @@ MENU *GUI::build_message_menu(const map<string, string> &m, void (*func)(int), M
 	unsigned int i = 0;
 
 	for (auto it = m.begin(); it != m.end(); ++it) {
-		char *title = strdup(it->first.c_str());
+		string s = "   " + it->first;
+		char *title = strdup(s.c_str());
 		MenuData *md = new (nothrow) MenuData(title, func, i, mn);
 
 		if (config::message_status[it->first] & status::read) {
 			title[0] = 'R';
-			title[1] = ' ';
 			md->set_content("status", "r");
 		}
 
@@ -386,7 +414,7 @@ MENU *GUI::build_message_menu(const map<string, string> &m, void (*func)(int), M
 		d_mMessages = nullptr;
 	}
 
-	auto *menu = menu_create(items, 5, 1, mn);
+	auto *menu = menu_create(items, m.size(), 1, mn);
 	set_menu_mark(menu, ">");
 	return menu;
 }
@@ -482,6 +510,7 @@ void GUI::handle_command(int ch, MENU *menu)
 			werase(d_content);
 			mvwprintw(d_content, 0, 0, "%s", err.c_str());
 			wclrtoeol(d_content);
+			touchwin(d_contentbox);
 			wrefresh(d_content);
 		// reFresh
 		} else if (*c == 'f') {
@@ -508,7 +537,6 @@ void GUI::handle_command(int ch, MENU *menu)
 			// mark as read, if not already
 			if (md->get_content("status").size() == 0) {
 				md->title[0] = 'R';
-				md->title[1] = ' ';
 				mark_as_read(md->get_content("id"));
 				md->set_content("status", "r");
 			}
@@ -536,6 +564,7 @@ void GUI::handle_command(int ch, MENU *menu)
 			werase(d_content);
 			mvwprintw(d_content, 0, 0, "%s", err.c_str());
 			wclrtoeol(d_content);
+			touchwin(d_contentbox);
 			wrefresh(d_content);
 		// reFresh
 		} else if (*c == 'f') {
@@ -550,14 +579,22 @@ void GUI::handle_command(int ch, MENU *menu)
 void GUI::perform_menus(void)
 {
 	MENU *this_menu;
-	MENU *last_menu = d_mDrops;
+	MENU *last_menu = d_mPersonas;
 	int code = E_UNKNOWN_COMMAND;
 	int cmd;
 	int ch = ERR;
 
 	menu_display(last_menu);
+	touchwin(d_contentbox);
+	refresh();
 
 	for (;;) {
+
+		dropsview::box(d_status, 0, 0);
+		wrefresh(d_status);
+		wrefresh(d_contentbox);
+		menu_display(current_menu());
+		refresh();
 
 		if (ch != ERR)
 			handle_command(ch, last_menu);
@@ -609,7 +646,7 @@ void GUI::perform_menus(void)
 			if (this_menu != last_menu) {
 				move(1, 0);
 				clrtobot();
-				box(menu_win(this_menu), 0, 0);
+				dropsview::box(menu_win(this_menu), 0, 0);
 				refresh();
 
 				/* force the current menu to appear */

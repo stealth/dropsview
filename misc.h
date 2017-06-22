@@ -24,6 +24,8 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <curses.h>
+
 
 namespace dropsview {
 
@@ -52,6 +54,8 @@ void refresh_inq(void);
 int system(const std::vector<const char *> &);
 
 int system(const std::vector<const char *> &, std::string &, std::string &);
+
+int box(WINDOW *win, chtype verch, chtype horch);
 
 
 }

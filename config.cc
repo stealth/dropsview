@@ -37,6 +37,8 @@ string home{""}, editor{"vi"}, tag{"global"};
 
 map<string, uint64_t> message_status;
 
+bool drawbox = 1;
+
 }
 
 

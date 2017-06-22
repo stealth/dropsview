@@ -91,7 +91,7 @@ private:
 	std::string d_err{""};
 
 	MENU *d_mBanner{nullptr}, *d_mDrops{nullptr}, *d_mPersonas{nullptr}, *d_mMessages{nullptr};
-	WINDOW *d_status{nullptr}, *d_content{nullptr};
+	WINDOW *d_status{nullptr}, *d_content{nullptr}, *d_contentbox{nullptr};
 
 
 	int menu_getc(MENU *m)
@@ -169,6 +169,10 @@ public:
 		menu_destroy(d_mMessages);
 		menu_destroy(d_mBanner);
 
+		delwin(d_status);
+		delwin(d_content);
+		delwin(d_contentbox);
+
 		endwin();
 	}
 
@@ -189,6 +193,8 @@ public:
 	{
 		if (name == "content")
 			return d_content;
+		else if (name == "contentbox")
+			return d_contentbox;
 		else if (name == "status")
 			return d_status;
 		return nullptr;
