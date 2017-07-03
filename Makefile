@@ -16,7 +16,7 @@ all: dropsview.o config.o gui.o misc.o
 clean:
 	rm -f *.o
 
-dropsview.o: dropsview.cc
+dropsview.o: dropsview.cc gui.h
 	$(CXX) $(CXXFLAGS) -c $<
 
 config.o: config.cc config.h

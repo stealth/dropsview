@@ -45,7 +45,6 @@ class MenuData {
 	std::map<std::string, std::string> content;
 
 public:
-	std::string empty{""};
 	char *title{nullptr};
 
 	void (*func)(int){nullptr};
@@ -67,12 +66,16 @@ public:
 		free(title);
 	}
 
-	const std::string &get_content(const std::string &key)
+	std::string get_content(const std::string &key)
 	{
+		// for RVO
+		std::string s = "";
+
 		auto it = content.find(key);
 		if (it == content.end())
-			return empty;
-		return it->second;
+			return s;
+		s = it->second;
+		return s;
 	}
 
 	void set_content(const std::string &key, const std::string &value)

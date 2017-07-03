@@ -273,12 +273,12 @@ void GUI::menu_destroy(MENU *m)
 {
 	if (m) {
 		ITEM **items = menu_items(m);
-		free_menu(m);
 		unpost_menu(m);
+		free_menu(m);
 
 		for (auto ip = items; *ip; ++ip) {
 			delete static_cast<MenuData *>(item_userptr(*ip));
-			delete *ip;
+			free_item(*ip);
 		}
 
 		delete [] items;
